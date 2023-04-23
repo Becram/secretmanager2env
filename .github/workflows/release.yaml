@@ -26,5 +26,5 @@ jobs:
         goarch: ${{ matrix.goarch }}
         goversion: "https://dl.google.com/go/go1.19.2.linux-amd64.tar.gz"
         project_path: "."
-        binary_name: ${{ github.repository }}
+        binary_name: ${{ github.event.repository.name }}
         extra_files: README.md

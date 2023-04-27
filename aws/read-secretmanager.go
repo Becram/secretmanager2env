@@ -58,13 +58,18 @@ func GetSecret(secretName *string, secretVersion *string) {
 
 	var secrets map[string]string
 	error := json.Unmarshal([]byte(*result.SecretString), &secrets)
-	if error != nil {
-		panic(error)
-	}
-
+	check(error)
+	f, err := os.Create(".env")
+	check(err)
+	defer f.Close()
 	for key, value := range secrets {
 		// Each value is an `any` type, that is type asserted as a string
-		os.Setenv(key, value)
+		// os.Setenv(key, value)
+		secret := []byte(key + "=" + value + "\n")
+		_, err := f.Write(secret)
+		check(err)
+		f.Sync()
+
 		if os.Getenv("ENV_DEBUG") == "true" {
 			fmt.Printf("Setting Variable :   %s = %s***\n", key, value[0:4])
 		} else {
@@ -72,4 +77,10 @@ func GetSecret(secretName *string, secretVersion *string) {
 		}
 	}
 
+}
+
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
 }

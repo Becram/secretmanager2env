@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -18,7 +19,7 @@ func CreateSession() *session.Session {
 	return sess
 }
 
-func GetSecret(secretName *string, secretVersion *string) {
+func GetSecret(secretName *string, secretVersion *string, output *string, filename *string) {
 	svc := secretsmanager.New(CreateSession())
 	var versionID string
 	if *secretVersion == "version" {
@@ -53,11 +54,20 @@ func GetSecret(secretName *string, secretVersion *string) {
 			// Message from an error.
 			fmt.Println(err.Error())
 		}
-		return
 	}
 
+	if *output == "env" {
+		generate_env(result)
+	} else {
+		generate_json(result, *filename)
+	}
+
+}
+
+func generate_env(secretOutput *secretsmanager.GetSecretValueOutput) {
+
 	var secrets map[string]string
-	error := json.Unmarshal([]byte(*result.SecretString), &secrets)
+	error := json.Unmarshal([]byte(*secretOutput.SecretString), &secrets)
 	check(error)
 	f, err := os.Create(".env")
 	check(err)
@@ -77,6 +87,26 @@ func GetSecret(secretName *string, secretVersion *string) {
 		}
 	}
 
+}
+
+func generate_json(secretOutput *secretsmanager.GetSecretValueOutput, out_file string) {
+	// var secrets map[string]string
+	// jsonString, error := json.MarshalIndent(secretOutput.SecretString, "", "*")
+	// check(error)
+	f, err := os.Create(out_file + ".json")
+	check(err)
+	defer f.Close()
+	_, exit := f.WriteString(jsonPrettyPrint(*secretOutput.SecretString))
+	check(exit)
+}
+
+func jsonPrettyPrint(in string) string {
+	var out bytes.Buffer
+	err := json.Indent(&out, []byte(in), "", "\t")
+	if err != nil {
+		return in
+	}
+	return out.String()
 }
 
 func check(e error) {
